@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 Tax Liability Model — Federal + California</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #161d2e;
+    --panel-2: #1d2538;
+    --panel-3: #232c44;
+    --border: #2a3348;
+    --text: #e8ecf4;
+    --text-dim: #97a3bd;
+    --accent: #5b9dff;
+    --accent-2: #7ee3c0;
+    --warn: #f2b84b;
+    --bad: #ef6a6a;
+    --good: #6fd38a;
+    font-size: 15px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 24px 20px 80px; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  header h1 { font-size: 22px; margin: 0 0 4px; }
+  header p.sub { color: var(--text-dim); margin: 0 0 16px; font-size: 13.5px; }
+  .disclaimer {
+    background: #2a2410; border: 1px solid #4a3f16; color: #f2d98a;
+    border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 20px;
+  }
+  .grid { display: grid; grid-template-columns: 400px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin: 0 0 12px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-dim); margin-bottom: 3px; }
+  .field .hint { font-size: 11px; color: #6c7896; margin-top: 2px; }
+  input[type=number], input[type=text], select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 7px 9px; font-size: 14px;
+  }
+  input:focus, select:focus { outline: 1px solid var(--accent); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .subhead { font-size: 12px; color: var(--accent-2); margin: 12px 0 6px; font-weight: 600; }
+
+  /* dynamic list rows */
+  .list-row { display: grid; grid-template-columns: 1fr 130px 26px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .list-row .remove-spacer { display: block; width: 26px; }
+  .mini-card { position: relative; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 12px 6px; margin-bottom: 10px; }
+  .remove-btn {
+    background: var(--panel-3); border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 6px; width: 26px; height: 26px; cursor: pointer; font-size: 12px; line-height: 1;
+  }
+  .remove-btn:hover { color: var(--bad); border-color: var(--bad); }
+  .mini-card .remove-btn { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; font-size: 11px; }
+  .add-btn {
+    display: block; width: 100%; background: transparent; border: 1px dashed var(--border); color: var(--accent);
+    border-radius: 8px; padding: 8px; font-size: 13px; cursor: pointer; margin-top: 2px;
+  }
+  .add-btn:hover { background: var(--panel-2); border-color: var(--accent); }
+
+  .headline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 700px) { .headline { grid-template-columns: 1fr 1fr; } }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat .label { font-size: 11.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .03em; }
+  .stat .value { font-size: 24px; font-weight: 650; margin-top: 4px; }
+  .stat.total .value { color: var(--accent); }
+  .stat.rate .value { color: var(--accent-2); }
+
+  .toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .info-btn {
+    background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
+    border-radius: 20px; padding: 6px 14px; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .info-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  details { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  details > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: 600; font-size: 14px;
+    list-style: none; display: flex; justify-content: space-between; align-items: center;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary .amt { color: var(--accent); font-weight: 700; }
+  details > summary::after { content: "▾"; color: var(--text-dim); transition: transform .15s; }
+  details[open] > summary::after { transform: rotate(180deg); }
+  .details-body { padding: 4px 16px 16px; border-top: 1px solid var(--border); }
+  details details { margin: 10px 0; }
+  details details > summary { font-size: 13px; padding: 8px 12px; background: var(--panel-2); border-radius: 6px; }
+  details details .details-body { padding: 10px 12px; }
+
+  /* Primary (federal / CA) sections get visual emphasis; marginal-rate stays plain */
+  details.primary { border-color: #37507e; box-shadow: 0 0 0 1px rgba(91,157,255,0.12); }
+  details.primary > summary { font-size: 16px; padding: 16px 20px; }
+  details.primary > summary .amt { font-size: 17px; }
+  details.primary > .details-body { padding: 6px 20px 20px; }
+
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 10px 0 14px; }
+  @media (max-width: 560px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total-row td { font-weight: 700; border-top: 1px solid var(--border); border-bottom: none; }
+
+  .kv { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13.5px; border-bottom: 1px dashed var(--border); gap: 10px; }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: var(--text-dim); }
+  .kv .v { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .kv .v.pos { color: var(--bad); }
+  .kv .v.zero { color: var(--good); }
+
+  .note { font-size: 12px; color: var(--text-dim); background: var(--panel-2); border-radius: 6px; padding: 8px 10px; margin: 8px 0; }
+  .flag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .flag.est { background: #4a3f16; color: #f2d98a; }
+  .flag.conf { background: #133a2b; color: var(--good); }
+
+  footer { color: var(--text-dim); font-size: 11.5px; margin-top: 30px; border-top: 1px solid var(--border); padding-top: 14px; }
+  footer a { color: var(--accent); }
+  ul.src { padding-left: 18px; margin: 6px 0; }
+  ul.src li { margin-bottom: 3px; }
+
+  /* modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(5,8,14,0.7); display: none; align-items: flex-start; justify-content: center; z-index: 100; padding: 40px 16px; overflow-y: auto; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; max-width: 820px; width: 100%; padding: 22px 26px 26px; position: relative; }
+  .modal-close { position: absolute; top: 14px; right: 16px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); border-radius: 6px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; }
+  .modal-close:hover { color: var(--bad); border-color: var(--bad); }
+  .modal h2 { font-size: 17px; margin: 0 0 4px; }
+  .modal-intro { font-size: 13px; color: var(--text-dim); margin: 0 0 14px; }
+  .src-callout { border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 8px; border-left: 3px solid; }
+  .src-callout.conf { background: #122a1c; border-color: var(--good); color: #c9ecd2; }
+  .src-callout.est { background: #2a2410; border-color: var(--warn); color: #f2d98a; }
+  .modal-section { border-top: 1px solid var(--border); padding: 2px 0; }
+  .modal-section:first-of-type { border-top: none; margin-top: 6px; }
+  .modal-section > summary { cursor: pointer; font-weight: 700; font-size: 14px; padding: 12px 0; color: var(--accent-2); list-style: none; display: flex; justify-content: space-between; }
+  .modal-section > summary::-webkit-details-marker { display: none; }
+  .modal-section > summary::after { content: "▾"; color: var(--text-dim); }
+  .modal-section[open] > summary::after { transform: rotate(180deg); display: inline-block; }
+  .modal-section .src-body { padding: 0 0 14px; }
+
+  /* Federal/CA "tax form" style calculation waterfall */
+  .calc-steps { margin: 10px 0 14px; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: var(--panel-2); }
+  .step { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13.5px; gap: 10px; }
+  .step .k { color: var(--text-dim); }
+  .step .v { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .step.sub { padding-left: 18px; font-size: 12px; opacity: .8; }
+  .step.sub .k::before { content: "· "; }
+  .step.subtotal { border-top: 1px solid var(--border); margin-top: 2px; padding-top: 6px; font-weight: 700; }
+  .step.minus .k { color: var(--good); }
+  .step.plus .k { color: var(--bad); }
+  .step.grand { border-top: 2px solid var(--accent); margin-top: 8px; padding-top: 10px; font-weight: 800; font-size: 14.5px; }
+  .step.grand .v { color: var(--accent); font-size: 16.5px; }
+  .rate-line { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); background: var(--panel-3); border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; }
+  .rate-line strong { color: var(--text); }
+
+  /* header toolbar (info / save / load) */
+  .toolbar-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .scenario-status { font-size: 11.5px; color: var(--good); }
+
+  /* collapsible hump warning */
+  .hump-details { border: none; background: none; margin: 0 0 12px; }
+  .hump-details > summary {
+    list-style: none; cursor: pointer; padding: 10px 14px; border-radius: 8px;
+    background: #2a2410; border: 1px solid #4a3f16; border-left: 3px solid var(--warn); color: #f2d98a;
+    font-size: 12.5px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;
+  }
+  .hump-details > summary::-webkit-details-marker { display: none; }
+  .hump-details > summary::after { content: "▾"; color: #f2d98a; margin-left: 8px; }
+  .hump-details[open] > summary::after { transform: rotate(180deg); display: inline-block; }
+  .hump-details[open] > summary { border-radius: 8px 8px 0 0; }
+  .hump-details .hump-body {
+    background: #241e0c; border: 1px solid #4a3f16; border-top: none; border-left: 3px solid var(--warn);
+    border-radius: 0 0 8px 8px; padding: 10px 14px; font-size: 12.5px; color: #f2d98a; font-weight: 400;
+  }
+
+  /* marginal rate table rows -> clickable to chart */
+  #marginal-body table tbody tr { cursor: pointer; }
+  #marginal-body table tbody tr:hover { background: var(--panel-3); }
+  #marginal-body table tbody tr.selected { background: rgba(91,157,255,0.12); outline: 1px solid var(--accent); }
+
+  /* chart panel */
+  .chart-panel { border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); padding: 12px 14px; margin-top: 10px; }
+  .chart-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-size: 12.5px; }
+  .chart-controls label { display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .chart-controls input[type=number] { width: 130px; }
+  .chart-close-btn { margin-left: auto; background: var(--panel-3); border: 1px solid var(--border); color: var(--text-dim); border-radius: 6px; width: 26px; height: 26px; cursor: pointer; }
+  .chart-close-btn:hover { color: var(--bad); border-color: var(--bad); }
+  .chart-wrap { position: relative; }
+  .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-dim); margin-top: 6px; }
+  .chart-legend span { display: flex; align-items: center; gap: 5px; }
+  .chart-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+  .chart-tooltip {
+    position: absolute; pointer-events: none; background: var(--panel-3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; font-size: 11.5px; white-space: nowrap; opacity: 0; transition: opacity .1s;
+    z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .chart-tooltip.visible { opacity: 1; }
+  .chart-tooltip .row { display: flex; justify-content: space-between; gap: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>2026 Tax Liability Model</h1>
+      <p class="sub">Federal + California — W-2, RSU, ISO/NSO exercise, capital gains &amp; charitable giving</p>
+    </div>
+    <div>
+      <div class="toolbar-group">
+        <button class="info-btn" id="saveBtn" title="Save this scenario to a file">💾 Save scenario</button>
+        <button class="info-btn" id="loadBtn" title="Load a previously saved scenario">📂 Load scenario</button>
+        <input type="file" id="loadFileInput" accept="application/json" style="display:none;">
+        <button class="info-btn" id="infoBtn" title="Sources & assumptions">ⓘ Sources &amp; assumptions</button>
+      </div>
+      <div class="scenario-status" id="scenarioStatus" style="text-align:right;"></div>
+    </div>
+  </header>
+
+  <div class="disclaimer">
+    <strong>Not tax advice.</strong> This is a planning model for scenario comparison, not a substitute for a CPA. Federal figures use confirmed IRS Rev. Proc. 2025-32 / IR-2025-103 2026 numbers. California figures use the FTB's confirmed <strong>2025</strong> brackets/thresholds (2026 numbers were not yet published by FTB at build time); use the "CA inflation adjustment" input to project 2026 figures if desired. Tap "Sources &amp; assumptions" above for full citations and every simplification made.
+  </div>
+
+  <div class="grid">
+    <!-- ============================= INPUTS ============================= -->
+    <div>
+      <div class="card">
+        <h2>Filing</h2>
+        <div class="field">
+          <label>Filing status</label>
+          <select id="filingStatus"><option value="single">Single</option><option value="mfj">Married Filing Jointly</option></select>
+        </div>
+        <div class="field">
+          <label>Deduction method</label>
+          <select id="deductionMethod"><option value="auto">Auto (use whichever is higher)</option><option value="standard">Force standard</option><option value="itemized">Force itemized</option></select>
+        </div>
+        <div class="field">
+          <label>CA inflation adjustment vs. 2025 figures</label>
+          <input type="number" id="caInflationPct" value="0" step="0.5">
+          <div class="hint">% bump applied to CA brackets/exemptions/deduction to approximate a future year. Leave at 0 to use confirmed 2025 FTB numbers as-is.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>W-2 &amp; RSU Income</h2>
+        <div class="subhead">W-2 wages</div>
+        <div id="w2List"></div>
+        <button type="button" class="add-btn" id="addW2Btn">+ Add W-2 source</button>
+
+        <div class="subhead" style="margin-top:16px;">RSU vests</div>
+        <div id="rsuList"></div>
+        <button type="button" class="add-btn" id="addRsuBtn">+ Add RSU vest</button>
+        <div class="hint" style="margin-top:8px;">Both are ordinary wage income taxed the same; kept separate for visibility.</div>
+      </div>
+
+      <div class="card">
+        <h2>Option Exercises</h2>
+        <div id="optionsList"></div>
+        <button type="button" class="add-btn" id="addOptionBtn">+ Add exercise event</button>
+      </div>
+
+      <div class="card">
+        <h2>Capital Gains</h2>
+        <div id="capgainsList"></div>
+        <button type="button" class="add-btn" id="addCapgainBtn">+ Add capital gain event</button>
+      </div>
+
+      <div class="card">
+        <h2>Charitable Donations</h2>
+        <div class="field"><label>Cash to public charity / DAF</label><input type="number" id="cashCharity" value="0" step="1000"></div>
+        <div class="field"><label>Appreciated stock (FMV) to public charity / DAF</label><input type="number" id="stockCharity" value="0" step="1000">
+          <div class="hint">Assumes long-term holding period (required for FMV deduction) and shares transferred in-kind before any sale.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Other</h2>
+        <div class="field"><label>Property tax paid</label><input type="number" id="propertyTax" value="0" step="500">
+          <div class="hint">Feeds CA itemized deduction and the federal SALT cap calculation.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= OUTPUTS ============================= -->
+    <div>
+      <div class="headline" id="headline"></div>
+
+      <details open class="primary" id="sec-federal"><summary><span>Federal Tax</span><span class="amt" id="fed-amt-summary"></span></summary>
+        <div class="details-body" id="fed-body"></div>
+      </details>
+
+      <details open class="primary" id="sec-ca"><summary><span>California Tax</span><span class="amt" id="ca-amt-summary"></span></summary>
+        <div class="details-body" id="ca-body"></div>
+      </details>
+
+      <details id="sec-payroll"><summary><span>Payroll Taxes (informational — not part of income-tax liability above)</span></summary>
+        <div class="details-body" id="payroll-body"></div>
+      </details>
+
+      <details id="sec-marginal"><summary><span>Marginal Rate on Next Dollar</span></summary>
+        <div class="details-body" id="marginal-body"></div>
+      </details>
+
+      <footer>
+        Built for planning/comparison purposes only. Tax law changes; figures on this page reflect understanding as of August 2026. Re-verify against current IRS/FTB guidance, especially once FTB publishes official 2026 numbers.
+      </footer>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= SOURCES MODAL ============================= -->
+<div class="modal-overlay" id="sourcesModal">
+  <div class="modal">
+    <button class="modal-close" id="modalCloseBtn">✕</button>
+    <h2>Sources &amp; Assumptions</h2>
+    <p class="modal-intro">Every figure below traces to one of the two boxes right below, or is called out inline as a modeling assumption. Tap a section to expand it — start with whichever jurisdiction or question you're trying to double-check.</p>
+
+    <div class="src-callout conf"><strong>✓ Federal figures are confirmed 2026 numbers</strong> — sourced directly to IRS Rev. Proc. 2025-32 and IR-2025-103, including the OBBBA-driven changes (AMT phase-out, SALT cap, new itemized limits) that take effect this year.</div>
+    <div class="src-callout est"><strong>⚠ California figures are confirmed 2025 numbers, not yet 2026</strong> — the FTB hadn't published official 2026 brackets/thresholds at build time. The "CA inflation adjustment" input on the left lets you approximate 2026 by scaling the 2025 figures; leave it at 0 to see 2025 numbers as-is.</div>
+
+    <details class="modal-section" open><summary>Federal — confirmed 2026 figures</summary><div class="src-body">
+      <ul class="src">
+        <li>Ordinary brackets, standard deduction, LTCG breakpoints, AMT exemption/phase-out/rate breakpoint: <a href="https://www.irs.gov/pub/irs-drop/rp-25-32.pdf" target="_blank">IRS Rev. Proc. 2025-32</a>; summarized in <a href="https://www.irs.gov/newsroom/irs-releases-tax-inflation-adjustments-for-tax-year-2026-including-amendments-from-the-one-big-beautiful-bill" target="_blank">IR-2025-103</a>. AMT phase-out threshold ($500K single / $1M MFJ) and 50% phase-out rate reflect OBBBA §70107 amending IRC §55(d) — a real tightening vs. pre-2026 law (the phase-out rate doubled from 25% to 50%, and the threshold dropped roughly back to pre-TCJA levels). This is the single biggest driver of high marginal rates on ISO exercises and large capital gains this year — see the Marginal Rate section for where it bites.</li>
+        <li>NIIT (3.8%, $200K/$250K) and Additional Medicare Tax (0.9%, $200K/$250K): IRC §1411 / §3101(b)(2) — fixed statutory dollar thresholds, not inflation-indexed, unchanged by OBBBA.</li>
+        <li>2026 Social Security wage base ($184,500) and employee-side rate (6.2%): confirmed via SSA's October 2025 announcement.</li>
+        <li>SALT cap ($40,400, phase-out starting $505,000 MAGI at 30¢/$, floor $10,000): OBBBA amendment to IRC §164(b)(6).</li>
+        <li>"2/37" itemized deduction limitation for top-bracket filers (new IRC §68, replacing the repealed Pease limitation): reduces itemized deductions by 2/37 of the lesser of itemized deductions or income above the 37%-bracket threshold — caps deduction value at 35¢/$ instead of 37¢/$.</li>
+        <li>Charitable AGI limits (60% cash / 30% appreciated stock, both to public charities/DAFs), 5-year carryforward: IRC §170(b), IRS Pub. 526.</li>
+        <li>New 0.5%-of-AGI charitable floor (new IRC §170(b)(1)(L), effective 2026): first 0.5% of AGI given is nondeductible. <span class="flag est">assumption</span> — this model applies the floor against cash contributions before stock; the statute's ordering wasn't explicit in publicly available guidance at build time, so this is a modeling choice, not a sourced rule.</li>
+        <li>ISO AMT preference item (bargain element added to AMTI in exercise year) and minimum tax credit carryforward: IRC §56(b)(3); IRS Form 6251 &amp; Form 8801 instructions.</li>
+      </ul>
+    </div></details>
+
+    <details class="modal-section"><summary>California — confirmed 2025 figures, 2026 projected</summary><div class="src-body">
+      <ul class="src">
+        <li>Tax brackets (Schedule X/Y): <a href="https://www.ftb.ca.gov/forms/2025/2025-540-tax-rate-schedules.pdf" target="_blank">2025 CA Tax Rate Schedules</a>.</li>
+        <li>Standard deduction ($5,706 single / $11,412 MFJ): <a href="https://www.ftb.ca.gov/file/personal/deductions/index.html" target="_blank">FTB Deductions</a>.</li>
+        <li>Mental Health Services Tax (1% over $1,000,000): R&amp;TC §17043 (Prop. 63). The $1M threshold is a <strong>fixed statutory amount, not inflation-indexed</strong> — it stays $1,000,000 regardless of the CA inflation adjustment input.</li>
+        <li>CA AMT (7% flat rate, exemption $92,749 single/$123,667 MFJ, <strong>25% phase-out</strong> starting $347,808/$463,745): <a href="https://www.ftb.ca.gov/forms/2025/2025-540-p-instructions.html" target="_blank">2025 Instructions for Schedule P (540)</a>. CA conforms to federal ISO preference-item treatment, but its phase-out rate stayed at the original 25% — CA's static conformity date (IRC as of Jan 1, 2015) predates OBBBA's 2026 federal change to 50%, so CA's AMT "hump" is noticeably milder than the new federal one.</li>
+        <li>CA high-income itemized deduction limitation (reduces itemized deductions by lesser of 6% of AGI above $237,035 single/$474,075 MFJ, or 80% of itemized deductions) — CA never repealed its Pease-style limitation the way federal law did: <a href="https://www.ftb.ca.gov/forms/2025/2025-540-ca-instructions.html" target="_blank">2025 Instructions for Schedule CA (540)</a>.</li>
+        <li>CA charitable cash-gift limit is <strong>50% of AGI, not 60%</strong> — CA's static conformity date predates the TCJA change that raised the federal cash limit to 60%. Confirmed directly in the Schedule CA (540) instructions. Appreciated-stock limit remains 30% (unchanged federal vs. CA). CA does <em>not</em> apply the new federal 0.5% floor.</li>
+        <li>CA SDI rate 1.3% for 2026, no wage base cap (removed by SB 951 effective 2024): confirmed via <a href="https://edd.ca.gov/en/payroll_taxes/rates_and_withholding/" target="_blank">EDD Rates &amp; Withholding</a> and independently cross-checked against 2026 SDI-rate coverage.</li>
+        <li><strong>2026 CA brackets/standard deduction/AMT exemption were not yet published by FTB</strong> at build time (typically released with the following year's booklet, around Nov/Dec). This model uses confirmed 2025 numbers, adjustable via the inflation input (recent CA CCPI adjustments have run ~3%/year) — treat any non-zero value as a rough projection, not an official figure. SDI (1.3%) and the MHST $1M threshold above are confirmed 2026 numbers regardless, since they're set independently of the CCPI bracket cycle.</li>
+      </ul>
+    </div></details>
+
+    <details class="modal-section"><summary>Simplifying assumptions</summary><div class="src-body">
+      <ul class="src">
+        <li>No above-the-line adjustments (401(k), HSA, etc.) are modeled — all income inputs are treated as already net of any pre-tax deferrals. AGI = total income entered.</li>
+        <li>Mortgage interest is not modeled as an itemized deduction (add manually to the property-tax field as a rough proxy if needed — this will slightly overstate the SALT/property-tax category, so use with care).</li>
+        <li>Federal SALT-deduction "tax paid" is proxied by this model's own computed CA liability for the same year (plus property tax), not actual withholding/estimated payments — a common simplification, but real-world timing can differ.</li>
+        <li>ISOs are assumed exercised-and-held past year-end (qualifying disposition path) — no same-year disqualifying-disposition scenario is modeled.</li>
+        <li>Capital loss carryforwards (beyond netting entered directly in the capital-gains events), QBI deduction, other credits (child tax credit, foreign tax credit, etc.), and multi-year AMT credit (Form 8801/FTB 3510) carryforward are out of scope for this single-year model.</li>
+        <li>NIIT/AMT/itemized-limitation interactions are all computed from first principles per the statute/worksheet mechanics described above, not looked up from a table — verified against several hand-calculated scenarios during build but not a substitute for CPA review, especially near threshold "cliffs" like the AMT phase-out band.</li>
+      </ul>
+    </div></details>
+  </div>
+</div>
+
+<script>
+// ============================================================================
+// Tax calculation engine — Federal + California, TY2026 (see Sources modal for citations)
+// ============================================================================
+const CONST = {
+  federal: { y2026: {
+    ordinary: {
+      single: [[0,0.10],[12400,0.12],[50400,0.22],[105700,0.24],[201775,0.32],[256225,0.35],[640600,0.37]],
+      mfj: [[0,0.10],[24800,0.12],[100800,0.22],[211400,0.24],[403550,0.32],[512450,0.35],[768700,0.37]]
+    },
+    stdDeduction: { single: 16100, mfj: 32200 },
+    ltcg: {
+      single: [[0,0.00],[49450,0.15],[545500,0.20]],
+      mfj: [[0,0.00],[98900,0.15],[613700,0.20]]
+    },
+    amt: {
+      exemption: { single: 90100, mfj: 140200 },
+      phaseoutStart: { single: 500000, mfj: 1000000 },
+      phaseoutRate: 0.50, rateBreakpoint: 244500, lowRate: 0.26, highRate: 0.28
+    },
+    niit: { rate: 0.038, threshold: { single: 200000, mfj: 250000 } },
+    addlMedicare: { rate: 0.009, threshold: { single: 200000, mfj: 250000 } },
+    medicare: { rate: 0.0145 },
+    ssWageBase2026: 184500, ssRate: 0.062,
+    salt: { cap: 40400, phaseoutStart: 505000, phaseoutRate: 0.30, floor: 10000 },
+    itemizedLimit37: { threshold: { single: 640600, mfj: 768700 }, fraction: 2/37 },
+    charitable: { cashAGILimit: 0.60, stockAGILimit: 0.30, floorPct: 0.005 }
+  }},
+  ca: { base2025: {
+    ordinary: {
+      single: [[0,0.01],[11079,0.02],[26264,0.04],[41452,0.06],[57542,0.08],[72724,0.093],[371479,0.103],[445771,0.113],[742953,0.123]],
+      mfj: [[0,0.01],[22158,0.02],[52528,0.04],[82904,0.06],[115084,0.08],[145448,0.093],[742958,0.103],[891542,0.113],[1485906,0.123]]
+    },
+    stdDeduction: { single: 5706, mfj: 11412 },
+    mhst: { threshold: 1000000, rate: 0.01 },
+    amt: { exemption: { single: 92749, mfj: 123667 }, phaseoutStart: { single: 347808, mfj: 463745 }, phaseoutRate: 0.25, rate: 0.07 },
+    itemizedHighIncomeLimit: { threshold: { single: 237035, mfj: 474075 }, pctOfExcess: 0.06, pctOfItemized: 0.80 },
+    charitable: { cashAGILimit: 0.50, stockAGILimit: 0.30 },
+    sdiRate: 0.013
+  }}
+};
+
+function round2(x){ return Math.round(x*100)/100; }
+function scaleThresholds(brackets, factor){ return brackets.map(([t,r])=>[round2(t*factor), r]); }
+
+function bracketTax(amount, brackets){
+  if (amount <= 0) return { tax: 0, marginalRate: brackets[0][1], detail: [] };
+  let tax = 0; const detail = [];
+  for (let i=0;i<brackets.length;i++){
+    const [start,rate] = brackets[i];
+    const end = i+1<brackets.length ? brackets[i+1][0] : Infinity;
+    if (amount > start){
+      const sliceAmt = Math.min(amount,end)-start;
+      const sliceTax = sliceAmt*rate;
+      tax += sliceTax;
+      detail.push({start,end:Math.min(amount,end),rate,amount:sliceAmt,tax:sliceTax});
+    }
+  }
+  let marginalRate = brackets[0][1];
+  for (const [start,rate] of brackets) if (amount>start) marginalRate = rate;
+  return { tax: round2(tax), marginalRate, detail };
+}
+
+function stackedLtcgTax(ordinaryTaxableIncome, ltcgAmount, ltcgBrackets){
+  if (ltcgAmount <= 0) return { tax: 0, detail: [] };
+  const start = ordinaryTaxableIncome, end = ordinaryTaxableIncome+ltcgAmount;
+  let tax = 0; const detail = [];
+  for (let i=0;i<ltcgBrackets.length;i++){
+    const [bStart,rate] = ltcgBrackets[i];
+    const bEnd = i+1<ltcgBrackets.length ? ltcgBrackets[i+1][0] : Infinity;
+    const sliceStart = Math.max(start,bStart), sliceEnd = Math.min(end,bEnd);
+    if (sliceEnd > sliceStart){
+      const amt = sliceEnd-sliceStart, t = amt*rate;
+      tax += t;
+      detail.push({start:sliceStart,end:sliceEnd,rate,amount:amt,tax:t});
+    }
+  }
+  return { tax: round2(tax), detail };
+}
+
+function fs(filingStatus){ return filingStatus==='mfj' ? 'mfj' : 'single'; }
+
+function calculate(inputs){
+  const fstat = fs(inputs.filingStatus);
+  const F = CONST.federal.y2026;
+  const caInflationFactor = 1 + (inputs.caInflationPct||0)/100;
+  const C = CONST.ca.base2025;
+
+  const w2 = Math.max(0, inputs.w2Income||0);
+  const rsu = Math.max(0, inputs.rsuIncome||0);
+  const isoPreference = Math.max(0, inputs.isoPreference||0);
+  const nsoOrdinaryIncome = Math.max(0, inputs.nsoOrdinaryIncome||0);
+
+  // Capital gain/loss netting (IRC §1211/§1212, simplified): a net loss in one holding-period
+  // bucket first offsets a net gain in the other, before either is taxed. If the combined net
+  // position is still a loss, up to $3,000/year is deductible against ordinary income and the
+  // remainder carries forward to future years (not modeled beyond flagging the carryforward amount).
+  let stcg = inputs.stcg||0, ltcg = inputs.ltcg||0;
+  if (stcg < 0 && ltcg > 0) { const offset = Math.min(-stcg, ltcg); ltcg -= offset; stcg += offset; }
+  if (ltcg < 0 && stcg > 0) { const offset = Math.min(-ltcg, stcg); stcg -= offset; ltcg += offset; }
+  let capitalLossDeduction = 0, capitalLossCarryforward = 0;
+  const netCapitalPosition = stcg + ltcg;
+  if (netCapitalPosition < 0) {
+    capitalLossDeduction = Math.min(3000, -netCapitalPosition);
+    capitalLossCarryforward = Math.max(0, -netCapitalPosition - 3000);
+    stcg = 0; ltcg = 0;
+  } else {
+    stcg = Math.max(0, stcg);
+    ltcg = Math.max(0, ltcg);
+  }
+
+  const wages = w2+rsu+nsoOrdinaryIncome;
+  const totalOrdinaryIncome = wages+stcg;
+  const totalIncome = totalOrdinaryIncome+ltcg;
+  const AGI = Math.max(0, totalIncome - capitalLossDeduction);
+
+  const cashCharity = Math.max(0, inputs.cashCharity||0);
+  const stockCharity = Math.max(0, inputs.stockCharity||0);
+  const propertyTax = Math.max(0, inputs.propertyTax||0);
+
+  // ---------- California (computed first; feeds federal SALT) ----------
+  const caOrdinaryBrackets = scaleThresholds(C.ordinary[fstat], caInflationFactor);
+  const caStdDeduction = round2(C.stdDeduction[fstat]*caInflationFactor);
+  const caCharityCashLimit = C.charitable.cashAGILimit*AGI;
+  const caCharityStockLimit = C.charitable.stockAGILimit*AGI;
+  const caCashDeductible = Math.min(cashCharity, caCharityCashLimit);
+  const caStockDeductible = Math.min(stockCharity, caCharityStockLimit);
+  const caCharityDeductible = caCashDeductible+caStockDeductible;
+
+  const caItemizedRaw = caCharityDeductible+propertyTax;
+  const caHiIncomeThreshold = round2(C.itemizedHighIncomeLimit.threshold[fstat]*caInflationFactor);
+  let caItemizedReduction = 0;
+  if (AGI > caHiIncomeThreshold && caItemizedRaw > 0){
+    caItemizedReduction = Math.min(
+      C.itemizedHighIncomeLimit.pctOfExcess*(AGI-caHiIncomeThreshold),
+      C.itemizedHighIncomeLimit.pctOfItemized*caItemizedRaw
+    );
+  }
+  const caItemized = Math.max(0, caItemizedRaw-caItemizedReduction);
+  const caUseItemized = inputs.deductionMethod==='itemized' || (inputs.deductionMethod!=='standard' && caItemized>caStdDeduction);
+  const caDeduction = caUseItemized ? caItemized : caStdDeduction;
+  const caTaxableIncome = Math.max(0, AGI-caDeduction);
+
+  const caOrdinaryTaxResult = bracketTax(caTaxableIncome, caOrdinaryBrackets);
+  const caMhstThreshold = C.mhst.threshold;
+  const caMHST = Math.max(0, caTaxableIncome-caMhstThreshold)*C.mhst.rate;
+  const caRegularTax = caOrdinaryTaxResult.tax+caMHST;
+
+  const caAmtItemized = caCharityDeductible;
+  const caAMTI = Math.max(0, AGI-caAmtItemized)+isoPreference;
+  const caAmtExemptionBase = round2(C.amt.exemption[fstat]*caInflationFactor);
+  const caAmtPhaseoutStart = round2(C.amt.phaseoutStart[fstat]*caInflationFactor);
+  const caAmtExemption = Math.max(0, caAmtExemptionBase-Math.max(0,caAMTI-caAmtPhaseoutStart)*C.amt.phaseoutRate);
+  const caAmtBase = Math.max(0, caAMTI-caAmtExemption);
+  const caTMT = caAmtBase*C.amt.rate;
+  const caAmtOwed = Math.max(0, caTMT-caOrdinaryTaxResult.tax);
+  const caTotalTax = round2(caRegularTax+caAmtOwed);
+
+  // ---------- Federal ----------
+  const fedOrdinaryBrackets = F.ordinary[fstat];
+  const fedStd = F.stdDeduction[fstat];
+
+  const fedCharityCashLimit = F.charitable.cashAGILimit*AGI;
+  const fedCharityStockLimit = F.charitable.stockAGILimit*AGI;
+  const charityFloor = F.charitable.floorPct*AGI;
+  const floorAppliedToCash = Math.min(cashCharity, charityFloor);
+  const cashAfterFloor = cashCharity-floorAppliedToCash;
+  const remainingFloor = charityFloor-floorAppliedToCash;
+  const stockAfterFloor = Math.max(0, stockCharity-remainingFloor);
+  const fedCashDeductible = Math.min(cashAfterFloor, fedCharityCashLimit);
+  const fedStockDeductible = Math.min(stockAfterFloor, fedCharityStockLimit);
+  const fedCharityDeductible = fedCashDeductible+fedStockDeductible;
+
+  const saltPaidRaw = caTotalTax+propertyTax;
+  let saltCapEffective = F.salt.cap;
+  if (AGI > F.salt.phaseoutStart){
+    const reduction = F.salt.phaseoutRate*(AGI-F.salt.phaseoutStart);
+    saltCapEffective = Math.max(F.salt.floor, F.salt.cap-reduction);
+  }
+  const saltDeductible = Math.min(saltPaidRaw, saltCapEffective);
+
+  const fedItemizedRaw = fedCharityDeductible+saltDeductible;
+  const bracketThreshold = F.itemizedLimit37.threshold[fstat];
+  const excessOverThreshold = Math.max(0, AGI-bracketThreshold);
+  const limitation37 = Math.min(F.itemizedLimit37.fraction*fedItemizedRaw, F.itemizedLimit37.fraction*excessOverThreshold);
+  const fedItemized = Math.max(0, fedItemizedRaw-limitation37);
+
+  const fedUseItemized = inputs.deductionMethod==='itemized' || (inputs.deductionMethod!=='standard' && fedItemized>fedStd);
+  const fedDeduction = fedUseItemized ? fedItemized : fedStd;
+
+  const fedTaxableIncome = Math.max(0, AGI-fedDeduction);
+  const fedOrdinaryTaxableIncome = Math.max(0, fedTaxableIncome-ltcg);
+  const fedLtcgInIncome = fedTaxableIncome-fedOrdinaryTaxableIncome;
+
+  const fedOrdinaryTaxResult = bracketTax(fedOrdinaryTaxableIncome, fedOrdinaryBrackets);
+  const fedLtcgTaxResult = stackedLtcgTax(fedOrdinaryTaxableIncome, fedLtcgInIncome, F.ltcg[fstat]);
+  const fedRegularTax = fedOrdinaryTaxResult.tax+fedLtcgTaxResult.tax;
+
+  const fedAmtCharity = fedCharityDeductible;
+  const fedAMTI = Math.max(0, AGI-fedAmtCharity)+isoPreference;
+  const amtExemptionBase = F.amt.exemption[fstat];
+  const amtPhaseoutStart = F.amt.phaseoutStart[fstat];
+  const amtExemption = Math.max(0, amtExemptionBase-Math.max(0,fedAMTI-amtPhaseoutStart)*F.amt.phaseoutRate);
+  const amtBase = Math.max(0, fedAMTI-amtExemption);
+  const amtLtcgPortion = Math.min(fedLtcgInIncome, amtBase);
+  const amtOrdinaryPortion = Math.max(0, amtBase-amtLtcgPortion);
+  const amtOrdinaryTax = bracketTax(amtOrdinaryPortion, [[0,F.amt.lowRate],[F.amt.rateBreakpoint,F.amt.highRate]]).tax;
+  const amtLtcgTax = stackedLtcgTax(fedOrdinaryTaxableIncome, amtLtcgPortion, F.ltcg[fstat]).tax;
+  const TMT = amtOrdinaryTax+amtLtcgTax;
+  const fedAmtOwed = Math.max(0, TMT-fedRegularTax);
+
+  const netInvestmentIncome = stcg+ltcg;
+  const niitThreshold = F.niit.threshold[fstat];
+  const niitBase = Math.min(netInvestmentIncome, Math.max(0, AGI-niitThreshold));
+  const niit = niitBase*F.niit.rate;
+  const niitStcgShare = netInvestmentIncome>0 ? (stcg/netInvestmentIncome)*niit : 0;
+  const niitLtcgShare = niit-niitStcgShare;
+
+  const addlMedThreshold = F.addlMedicare.threshold[fstat];
+  const addlMedBase = Math.max(0, wages-addlMedThreshold);
+  const addlMedicare = addlMedBase*F.addlMedicare.rate;
+
+  const fedTotalTax = round2(fedRegularTax+fedAmtOwed+niit+addlMedicare);
+
+  const medicareBase = wages*F.medicare.rate;
+  const ssTax = Math.min(wages, F.ssWageBase2026)*F.ssRate;
+  const caSdi = wages*C.sdiRate;
+
+  const grandTotal = round2(fedTotalTax+caTotalTax);
+  const effectiveRateTotal = totalIncome>0 ? grandTotal/totalIncome : 0;
+  const effectiveRateFed = totalIncome>0 ? fedTotalTax/totalIncome : 0;
+  const effectiveRateCa = totalIncome>0 ? caTotalTax/totalIncome : 0;
+
+  return {
+    income: { wages, totalOrdinaryIncome, totalIncome, AGI, stcg, ltcg, capitalLossDeduction, capitalLossCarryforward },
+    federal: {
+      deduction: { fedItemizedRaw, limitation37, fedItemized, fedStd, used: fedUseItemized?'itemized':'standard', fedDeduction,
+        saltPaidRaw, saltCapEffective, saltDeductible, fedCharityDeductible, fedCashDeductible, fedStockDeductible, charityFloor },
+      taxableIncome: fedTaxableIncome, ordinaryTaxableIncome: fedOrdinaryTaxableIncome, ltcgInIncome: fedLtcgInIncome,
+      ordinary: fedOrdinaryTaxResult, ltcg: fedLtcgTaxResult, regularTax: round2(fedRegularTax),
+      amt: { AMTI: fedAMTI, isoPreference, exemption: amtExemption, exemptionBase: amtExemptionBase, phaseoutStart: amtPhaseoutStart, base: amtBase,
+        TMT: round2(TMT), amtOrdinaryTax: round2(amtOrdinaryTax), amtLtcgTax: round2(amtLtcgTax), amtOrdinaryPortion, amtLtcgPortion, owed: round2(fedAmtOwed) },
+      niit: { netInvestmentIncome, base: niitBase, tax: round2(niit), stcgShare: round2(niitStcgShare), ltcgShare: round2(niitLtcgShare), threshold: niitThreshold },
+      addlMedicare: { base: addlMedBase, tax: round2(addlMedicare), threshold: addlMedThreshold },
+      effectiveRate: effectiveRateFed,
+      totalTax: fedTotalTax
+    },
+    ca: {
+      deduction: { caItemizedRaw, caItemizedReduction, caItemized, caStdDeduction, used: caUseItemized?'itemized':'standard', caDeduction, caCharityDeductible, caHiIncomeThreshold },
+      taxableIncome: caTaxableIncome, ordinary: caOrdinaryTaxResult, mhst: { tax: round2(caMHST), threshold: caMhstThreshold },
+      regularTax: round2(caRegularTax),
+      amt: { AMTI: caAMTI, exemption: caAmtExemption, exemptionBase: caAmtExemptionBase, phaseoutStart: caAmtPhaseoutStart, base: caAmtBase, TMT: round2(caTMT), owed: round2(caAmtOwed) },
+      effectiveRate: effectiveRateCa,
+      totalTax: caTotalTax
+    },
+    payrollInfo: { medicareBase: round2(medicareBase), ssTax: round2(ssTax), caSdi: round2(caSdi) },
+    totals: { grandTotal, effectiveRateTotal }
+  };
+}
+
+// ============================================================================
+// State
+// ============================================================================
+const state = {
+  filingStatus: 'single',
+  deductionMethod: 'auto',
+  caInflationPct: 0,
+  w2Sources: [{ label: 'Base salary', amount: 0 }],
+  rsuVests: [{ label: '', amount: 0 }],
+  optionEvents: [{ type: 'ISO', label: '', shares: 0, strike: 0, fmv: 0 }],
+  capGainEvents: [{ type: 'LT', label: '', shares: 0, costBasis: 0, salePrice: 0 }],
+  cashCharity: 0,
+  stockCharity: 0,
+  propertyTax: 0
+};
+
+// UI-only state that should NOT go into saved scenario files (persists across re-renders only)
+let humpNoteOpen = false;
+let marginalChartState = { field: null, label: '', max: 100000 };
+
+function aggregateInputs(){
+  const w2Income = state.w2Sources.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+  const rsuIncome = state.rsuVests.reduce((s,i)=>s+(parseFloat(i.amount)||0),0);
+  let isoPreference = 0, nsoOrdinaryIncome = 0;
+  state.optionEvents.forEach(ev => {
+    const spread = Math.max(0, (parseFloat(ev.fmv)||0) - (parseFloat(ev.strike)||0));
+    const val = (parseFloat(ev.shares)||0) * spread;
+    if (ev.type === 'NSO') nsoOrdinaryIncome += val; else isoPreference += val;
+  });
+  let stcg = 0, ltcg = 0;
+  state.capGainEvents.forEach(ev => {
+    const shares = parseFloat(ev.shares)||0;
+    const costBasis = parseFloat(ev.costBasis)||0;
+    const salePrice = parseFloat(ev.salePrice)||0;
+    const amt = shares * (salePrice - costBasis);
+    if (ev.type === 'ST') stcg += amt; else ltcg += amt;
+  });
+  return {
+    filingStatus: state.filingStatus, deductionMethod: state.deductionMethod, caInflationPct: parseFloat(state.caInflationPct)||0,
+    w2Income, rsuIncome, isoPreference, nsoOrdinaryIncome, stcg, ltcg,
+    cashCharity: parseFloat(state.cashCharity)||0, stockCharity: parseFloat(state.stockCharity)||0, propertyTax: parseFloat(state.propertyTax)||0
+  };
+}
+
+// ============================================================================
+// Rendering helpers
+// ============================================================================
+const $ = id => document.getElementById(id);
+const money = x => (x<0?'-$':'$') + Math.abs(Math.round(x)).toLocaleString('en-US');
+const pct = x => (x*100).toFixed(2) + '%';
+const pct1 = x => (x*100).toFixed(1) + '%';
+const esc = s => (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+function bracketTableHTML(result){
+  let rows = result.detail.map(d => `<tr><td>${money(d.start)} – ${d.end===Infinity?'∞':money(d.end)}</td><td class="num">${pct1(d.rate)}</td><td class="num">${money(d.amount)}</td><td class="num">${money(d.tax)}</td></tr>`).join('');
+  if (!rows) rows = '<tr><td colspan="4" style="color:var(--text-dim)">No income in taxable brackets</td></tr>';
+  return `<table><thead><tr><th>Bracket</th><th class="num">Rate</th><th class="num">Amount in bracket</th><th class="num">Tax</th></tr></thead><tbody>${rows}</tbody><tfoot><tr class="total-row"><td colspan="3">Total</td><td class="num">${money(result.tax)}</td></tr></tfoot></table>`;
+}
+
+// ============================================================================
+// Marginal rate line chart — data generation + hand-rolled SVG (no external deps)
+// ============================================================================
+function computeMarginalSeries(field, maxIncrease, baseInputs){
+  maxIncrease = Math.max(1, maxIncrease||1);
+  const numSteps = 40;
+  const r0 = calculate(baseInputs);
+  const points = [];
+
+  // point at x=0: instantaneous marginal rate via a tiny epsilon bump
+  const eps = Math.max(1, maxIncrease/10000);
+  const bEps = Object.assign({}, baseInputs); bEps[field] = (baseInputs[field]||0)+eps;
+  const rEps = calculate(bEps);
+  points.push({
+    x: 0,
+    fedRate: (rEps.federal.totalTax-r0.federal.totalTax)/eps,
+    caRate: (rEps.ca.totalTax-r0.ca.totalTax)/eps,
+    combinedRate: (rEps.totals.grandTotal-r0.totals.grandTotal)/eps,
+    combinedDollar: 0,
+    totalIncome: r0.income.totalIncome
+  });
+
+  let prevFed = r0.federal.totalTax, prevCa = r0.ca.totalTax, prevCombined = r0.totals.grandTotal, prevX = 0;
+  for (let i=1;i<=numSteps;i++){
+    const x = maxIncrease*i/numSteps;
+    const b = Object.assign({}, baseInputs); b[field]=(baseInputs[field]||0)+x;
+    const rX = calculate(b);
+    const dx = x-prevX;
+    points.push({
+      x,
+      fedRate: (rX.federal.totalTax-prevFed)/dx,
+      caRate: (rX.ca.totalTax-prevCa)/dx,
+      combinedRate: (rX.totals.grandTotal-prevCombined)/dx,
+      combinedDollar: rX.totals.grandTotal-r0.totals.grandTotal,
+      totalIncome: rX.income.totalIncome
+    });
+    prevFed = rX.federal.totalTax; prevCa = rX.ca.totalTax; prevCombined = rX.totals.grandTotal; prevX = x;
+  }
+  return points;
+}
+
+function buildMarginalChartSVG(points, maxIncrease){
+  const W = 640, H = 320, marginL = 56, marginR = 56, marginT = 14, marginB = 34;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+
+  const maxRate = Math.max(0.1, ...points.map(p => Math.max(p.fedRate, p.caRate, p.combinedRate))) * 1.15;
+  const minRateSeen = Math.min(0, ...points.map(p => Math.min(p.fedRate, p.caRate, p.combinedRate)));
+  const minRate = minRateSeen < 0 ? minRateSeen * 1.15 : 0;
+  const maxDollar = Math.max(100, ...points.map(p => p.combinedDollar)) * 1.15;
+
+  const xScale = x => marginL + (x/maxIncrease)*plotW;
+  const rateScale = v => marginT + (1 - (v-minRate)/(maxRate-minRate))*plotH;
+  const dollarScale = v => marginT + (1 - v/maxDollar)*plotH;
+
+  const zeroY = rateScale(0);
+
+  function path(accessor, scale){
+    return 'M ' + points.map(p => `${xScale(p.x).toFixed(1)},${scale(accessor(p)).toFixed(1)}`).join(' L ');
+  }
+
+  const rateTicks = 5, xTicks = 5;
+  let gridSVG = '';
+  for (let i=0;i<=rateTicks;i++){
+    const v = minRate + (maxRate-minRate)*i/rateTicks;
+    const y = rateScale(v);
+    gridSVG += `<line x1="${marginL}" y1="${y.toFixed(1)}" x2="${W-marginR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1" />`;
+    gridSVG += `<text x="${marginL-8}" y="${(y+4).toFixed(1)}" font-size="10" fill="var(--text-dim)" text-anchor="end">${(v*100).toFixed(0)}%</text>`;
+    const dv = maxDollar*i/rateTicks;
+    gridSVG += `<text x="${W-marginR+8}" y="${(y+4).toFixed(1)}" font-size="10" fill="var(--text-dim)" text-anchor="start">$${Math.round(dv).toLocaleString()}</text>`;
+  }
+  let xAxisSVG = '';
+  for (let i=0;i<=xTicks;i++){
+    const x = maxIncrease*i/xTicks;
+    const px = xScale(x);
+    xAxisSVG += `<text x="${px.toFixed(1)}" y="${H-marginB+18}" font-size="10" fill="var(--text-dim)" text-anchor="middle">+$${Math.round(x).toLocaleString()}</text>`;
+    xAxisSVG += `<line x1="${px.toFixed(1)}" y1="${marginT}" x2="${px.toFixed(1)}" y2="${H-marginB}" stroke="var(--border)" stroke-width="0.5" stroke-dasharray="2,3" />`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;" id="marginalChartSVG">
+    <rect x="0" y="0" width="${W}" height="${H}" fill="transparent"></rect>
+    ${gridSVG}
+    ${xAxisSVG}
+    <line x1="${marginL}" y1="${zeroY.toFixed(1)}" x2="${W-marginR}" y2="${zeroY.toFixed(1)}" stroke="var(--text-dim)" stroke-width="1" />
+    <path d="${path(p=>p.combinedDollar, dollarScale)}" fill="none" stroke="var(--bad)" stroke-width="1.5" stroke-dasharray="5,3" />
+    <path d="${path(p=>p.fedRate, rateScale)}" fill="none" stroke="var(--accent)" stroke-width="2" />
+    <path d="${path(p=>p.caRate, rateScale)}" fill="none" stroke="var(--accent-2)" stroke-width="2" />
+    <path d="${path(p=>p.combinedRate, rateScale)}" fill="none" stroke="var(--warn)" stroke-width="2.5" />
+    <g id="chartHoverGroup" style="display:none;">
+      <line id="chartHoverLine" x1="0" y1="${marginT}" x2="0" y2="${H-marginB}" stroke="var(--text)" stroke-width="1" stroke-dasharray="3,3" />
+      <circle id="chartHoverFed" r="3.5" fill="var(--accent)" />
+      <circle id="chartHoverCa" r="3.5" fill="var(--accent-2)" />
+      <circle id="chartHoverCombined" r="4" fill="var(--warn)" />
+      <circle id="chartHoverDollar" r="3.5" fill="var(--bad)" />
+    </g>
+    <rect id="chartHoverCapture" x="${marginL}" y="${marginT}" width="${plotW}" height="${plotH}" fill="transparent" />
+  </svg>
+  <div class="chart-tooltip" id="chartTooltip"></div>`;
+}
+
+function initChartHover(points, maxIncrease){
+  const wrap = $('chartWrap');
+  const svg = document.getElementById('marginalChartSVG');
+  const capture = document.getElementById('chartHoverCapture');
+  const tooltip = document.getElementById('chartTooltip');
+  const hoverGroup = document.getElementById('chartHoverGroup');
+  if (!wrap || !svg || !capture || !tooltip) return;
+
+  const W = 640, marginL = 56, marginR = 56;
+  const plotW = W - marginL - marginR;
+
+  function handleMove(clientX, clientY){
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((clientX - rect.left) / rect.width) * W;
+    const frac = Math.min(1, Math.max(0, (svgX - marginL) / plotW));
+    const idx = Math.round(frac * (points.length - 1));
+    const p = points[idx];
+    if (!p) return;
+
+    const xPix = marginL + (p.x/maxIncrease)*plotW;
+    hoverGroup.style.display = '';
+    document.getElementById('chartHoverLine').setAttribute('x1', xPix.toFixed(1));
+    document.getElementById('chartHoverLine').setAttribute('x2', xPix.toFixed(1));
+
+    const maxRate = Math.max(0.1, ...points.map(pp => Math.max(pp.fedRate, pp.caRate, pp.combinedRate))) * 1.15;
+    const minRateSeen = Math.min(0, ...points.map(pp => Math.min(pp.fedRate, pp.caRate, pp.combinedRate)));
+    const minRate = minRateSeen < 0 ? minRateSeen * 1.15 : 0;
+    const maxDollar = Math.max(100, ...points.map(pp => pp.combinedDollar)) * 1.15;
+    const H = 320, marginT = 14, marginB = 34, plotH = H - marginT - marginB;
+    const rateScale = v => marginT + (1 - (v-minRate)/(maxRate-minRate))*plotH;
+    const dollarScale = v => marginT + (1 - v/maxDollar)*plotH;
+
+    document.getElementById('chartHoverFed').setAttribute('cx', xPix.toFixed(1));
+    document.getElementById('chartHoverFed').setAttribute('cy', rateScale(p.fedRate).toFixed(1));
+    document.getElementById('chartHoverCa').setAttribute('cx', xPix.toFixed(1));
+    document.getElementById('chartHoverCa').setAttribute('cy', rateScale(p.caRate).toFixed(1));
+    document.getElementById('chartHoverCombined').setAttribute('cx', xPix.toFixed(1));
+    document.getElementById('chartHoverCombined').setAttribute('cy', rateScale(p.combinedRate).toFixed(1));
+    document.getElementById('chartHoverDollar').setAttribute('cx', xPix.toFixed(1));
+    document.getElementById('chartHoverDollar').setAttribute('cy', dollarScale(p.combinedDollar).toFixed(1));
+
+    tooltip.innerHTML = `<div class="row"><strong>+${money(p.x)}</strong></div>
+      <div class="row" style="font-weight:400;color:var(--text-dim);margin-bottom:4px;">(${money(p.totalIncome)} total income)</div>
+      <div class="row"><span style="color:var(--accent)">Federal</span><span>${pct1(p.fedRate)}</span></div>
+      <div class="row"><span style="color:var(--accent-2)">California</span><span>${pct1(p.caRate)}</span></div>
+      <div class="row"><span style="color:var(--warn)">Combined</span><span>${pct1(p.combinedRate)}</span></div>
+      <div class="row"><span style="color:var(--bad)">Total extra $</span><span>${money(p.combinedDollar)}</span></div>`;
+    tooltip.classList.add('visible');
+    const wrapRect = wrap.getBoundingClientRect();
+    let left = (clientX - wrapRect.left) + 14;
+    let top = (clientY - wrapRect.top) - 10;
+    if (left + 170 > wrapRect.width) left = (clientX - wrapRect.left) - 184;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = Math.max(0, top) + 'px';
+  }
+
+  capture.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+  capture.addEventListener('mouseleave', () => { tooltip.classList.remove('visible'); hoverGroup.style.display = 'none'; });
+}
+
+// ---- dynamic list templates ----
+function simpleRowHTML(listName, idx, item, placeholder, canRemove){
+  return `<div class="list-row" data-list="${listName}" data-idx="${idx}">
+    <input type="text" data-field="label" placeholder="${placeholder}" value="${esc(item.label)}">
+    <input type="number" data-field="amount" step="1000" value="${item.amount}">
+    ${canRemove ? `<button type="button" class="remove-btn" data-action="remove" title="Remove">✕</button>` : `<span class="remove-spacer"></span>`}
+  </div>`;
+}
+
+function optionRowHTML(idx, item, canRemove){
+  return `<div class="mini-card" data-list="optionEvents" data-idx="${idx}">
+    ${canRemove ? `<button type="button" class="remove-btn" data-action="remove" title="Remove">✕</button>` : ``}
+    <div class="row2">
+      <div class="field"><label>Type</label>
+        <select data-field="type">
+          <option value="ISO" ${item.type==='ISO'?'selected':''}>ISO (AMT preference)</option>
+          <option value="NSO" ${item.type==='NSO'?'selected':''}>NSO (ordinary income)</option>
+        </select>
+      </div>
+      <div class="field"><label>Label (optional)</label><input type="text" data-field="label" value="${esc(item.label)}" placeholder="e.g. 2022 grant"></div>
+    </div>
+    <div class="row3">
+      <div class="field"><label>Shares</label><input type="number" data-field="shares" step="100" value="${item.shares}"></div>
+      <div class="field"><label>Strike price</label><input type="number" data-field="strike" step="0.01" value="${item.strike}"></div>
+      <div class="field"><label>FMV at exercise</label><input type="number" data-field="fmv" step="0.01" value="${item.fmv}"></div>
+    </div>
+  </div>`;
+}
+
+function capGainRowHTML(idx, item, canRemove){
+  return `<div class="mini-card" data-list="capGainEvents" data-idx="${idx}">
+    ${canRemove ? `<button type="button" class="remove-btn" data-action="remove" title="Remove">✕</button>` : ``}
+    <div class="row2">
+      <div class="field"><label>Type</label>
+        <select data-field="type">
+          <option value="ST" ${item.type==='ST'?'selected':''}>Short-term</option>
+          <option value="LT" ${item.type==='LT'?'selected':''}>Long-term</option>
+        </select>
+      </div>
+      <div class="field"><label>Label (optional)</label><input type="text" data-field="label" value="${esc(item.label)}" placeholder="e.g. Lockup sale"></div>
+    </div>
+    <div class="row3">
+      <div class="field"><label>Shares</label><input type="number" data-field="shares" step="100" value="${item.shares}"></div>
+      <div class="field"><label>Cost basis / share</label><input type="number" data-field="costBasis" step="0.01" value="${item.costBasis}"></div>
+      <div class="field"><label>Sale price / share</label><input type="number" data-field="salePrice" step="0.01" value="${item.salePrice}"></div>
+    </div>
+    <div class="hint" id="cgGain-${idx}">Gain: $0</div>
+  </div>`;
+}
+
+function renderW2List(){ $('w2List').innerHTML = state.w2Sources.map((it,i)=>simpleRowHTML('w2Sources',i,it,'e.g. Base salary',state.w2Sources.length>1)).join(''); }
+function renderRsuList(){ $('rsuList').innerHTML = state.rsuVests.map((it,i)=>simpleRowHTML('rsuVests',i,it,'e.g. Feb vest',state.rsuVests.length>1)).join(''); }
+function renderOptionsList(){ $('optionsList').innerHTML = state.optionEvents.map((it,i)=>optionRowHTML(i,it,state.optionEvents.length>1)).join('') || '<div class="hint">No option exercises added.</div>'; }
+function renderCapgainsList(){ $('capgainsList').innerHTML = state.capGainEvents.map((it,i)=>capGainRowHTML(i,it,state.capGainEvents.length>1)).join('') || '<div class="hint">No capital gain events added.</div>'; }
+
+function renderList(name){
+  if (name==='w2Sources') renderW2List();
+  else if (name==='rsuVests') renderRsuList();
+  else if (name==='optionEvents') renderOptionsList();
+  else if (name==='capGainEvents') renderCapgainsList();
+}
+
+function wireListContainer(containerId){
+  const el = $(containerId);
+  el.addEventListener('input', e => {
+    const row = e.target.closest('[data-list]');
+    const field = e.target.dataset.field;
+    if (!row || !field) return;
+    const list = row.dataset.list, idx = +row.dataset.idx;
+    state[list][idx][field] = e.target.type==='number' ? (parseFloat(e.target.value)||0) : e.target.value;
+    renderOutputs();
+  });
+  el.addEventListener('change', e => {
+    if (e.target.tagName !== 'SELECT') return;
+    const row = e.target.closest('[data-list]');
+    const field = e.target.dataset.field;
+    if (!row || !field) return;
+    const list = row.dataset.list, idx = +row.dataset.idx;
+    state[list][idx][field] = e.target.value;
+    renderOutputs();
+  });
+  el.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="remove"]');
+    if (!btn) return;
+    const row = e.target.closest('[data-list]');
+    const list = row.dataset.list, idx = +row.dataset.idx;
+    state[list].splice(idx,1);
+    renderList(list);
+    renderOutputs();
+  });
+}
+
+// ============================================================================
+// Main render
+// ============================================================================
+function renderOutputs(){
+  // live per-event gain readout on each capital-gains mini-card (cheap DOM text update, no rebuild)
+  state.capGainEvents.forEach((ev, idx) => {
+    const el = document.getElementById('cgGain-'+idx);
+    if (!el) return;
+    const shares = parseFloat(ev.shares)||0, costBasis = parseFloat(ev.costBasis)||0, salePrice = parseFloat(ev.salePrice)||0;
+    const gain = shares*(salePrice-costBasis);
+    el.textContent = 'Gain: ' + money(gain) + (shares>0 ? ` (${shares.toLocaleString()} sh × $${(salePrice-costBasis).toFixed(2)}/sh)` : '');
+  });
+
+  const inputs = aggregateInputs();
+  const r = calculate(inputs);
+  const fLabel = inputs.filingStatus==='mfj' ? 'MFJ' : 'Single';
+
+  $('headline').innerHTML = `
+    <div class="stat total"><div class="label">Total Tax Liability</div><div class="value">${money(r.totals.grandTotal)}</div></div>
+    <div class="stat rate"><div class="label">Effective Rate (on total income)</div><div class="value">${pct(r.totals.effectiveRateTotal)}</div></div>
+    <div class="stat"><div class="label">Federal Total</div><div class="value">${money(r.federal.totalTax)}</div></div>
+    <div class="stat"><div class="label">California Total</div><div class="value">${money(r.ca.totalTax)}</div></div>
+  `;
+
+  $('fed-amt-summary').textContent = money(r.federal.totalTax);
+  $('ca-amt-summary').textContent = money(r.ca.totalTax);
+
+  // ---------------- Federal body ----------------
+  const fd = r.federal.deduction;
+  $('fed-body').innerHTML = `
+    <div class="calc-steps">
+      <div class="step"><span class="k">Total income (wages + net ST gain + net LT gain, after loss netting)</span><span class="v">${money(r.income.totalIncome)}</span></div>
+      <div class="step sub"><span class="k">Wages — W-2 + RSU + NSO exercise</span><span class="v">${money(r.income.wages)}</span></div>
+      <div class="step sub"><span class="k">Net short-term capital gain</span><span class="v">${money(r.income.stcg)}</span></div>
+      <div class="step sub"><span class="k">Net long-term capital gain</span><span class="v">${money(r.income.ltcg)}</span></div>
+      ${r.income.capitalLossDeduction>0 ? `<div class="step minus"><span class="k">− Capital loss deduction (max $3,000/yr, IRC §1211)</span><span class="v">-${money(r.income.capitalLossDeduction)}</span></div>` : ``}
+      <div class="step subtotal"><span class="k">Adjusted gross income (AGI)</span><span class="v">${money(r.income.AGI)}</span></div>
+      <div class="step minus"><span class="k">− ${fd.used==='itemized'?'Itemized':'Standard'} deduction</span><span class="v">-${money(fd.fedDeduction)}</span></div>
+      <div class="step subtotal"><span class="k">Taxable income</span><span class="v">${money(r.federal.taxableIncome)}</span></div>
+      <div class="step"><span class="k">Tax on taxable income (ordinary brackets + LTCG rates)</span><span class="v">${money(r.federal.regularTax)}</span></div>
+      <div class="step plus"><span class="k">+ Alternative Minimum Tax</span><span class="v">${money(r.federal.amt.owed)}</span></div>
+      <div class="step plus"><span class="k">+ Net Investment Income Tax</span><span class="v">${money(r.federal.niit.tax)}</span></div>
+      <div class="step plus"><span class="k">+ Additional Medicare Tax</span><span class="v">${money(r.federal.addlMedicare.tax)}</span></div>
+      <div class="step grand"><span class="k">Total federal tax</span><span class="v">${money(r.federal.totalTax)}</span></div>
+    </div>
+    <div class="rate-line">
+      <span>Marginal rate on next dollar of ordinary income: <strong>${pct1(r.federal.ordinary.marginalRate)}</strong></span>
+      <span>Effective federal rate (of total income): <strong>${pct(r.federal.effectiveRate)}</strong></span>
+    </div>
+    <div class="note">No above-the-line adjustments (401(k), HSA, etc.) are modeled${r.income.capitalLossDeduction>0?'':', so AGI equals total income above'} — see the deduction detail below for exactly how the standard-vs-itemized decision was made. Open the accordions below for full line-by-line bracket math on any of these numbers.${r.income.capitalLossCarryforward>0 ? ` <strong>Note:</strong> ${money(r.income.capitalLossCarryforward)} of net capital loss exceeds the $3,000/year deduction limit and would carry forward to future tax years (not modeled here — track it yourself for next year's return).` : ''}</div>
+
+    <details><summary>Standard vs. itemized deduction detail</summary><div class="details-body">
+      <div class="kv"><span class="k">Standard deduction (${fLabel})</span><span class="v">${money(fd.fedStd)}</span></div>
+      <div class="kv"><span class="k">Charitable floor (0.5% of AGI, nondeductible) <span class="flag est">assumption: applied to cash first</span></span><span class="v pos">-${money(fd.charityFloor)}</span></div>
+      <div class="kv"><span class="k">Charitable deduction after floor &amp; AGI limits (cash ≤60%, stock ≤30%)</span><span class="v">${money(fd.fedCharityDeductible)}</span></div>
+      <div class="kv" style="padding-left:14px;"><span class="k">— cash portion</span><span class="v">${money(fd.fedCashDeductible)}</span></div>
+      <div class="kv" style="padding-left:14px;"><span class="k">— stock portion</span><span class="v">${money(fd.fedStockDeductible)}</span></div>
+      <div class="kv"><span class="k">SALT paid (this model's CA liability + property tax)</span><span class="v">${money(fd.saltPaidRaw)}</span></div>
+      <div class="kv"><span class="k">SALT cap after OBBBA phase-out (starts $505,000 MAGI, 30¢/$, floor $10,000)</span><span class="v">${money(fd.saltCapEffective)}</span></div>
+      <div class="kv"><span class="k">SALT deducted (lesser of paid or cap)</span><span class="v">${money(fd.saltDeductible)}</span></div>
+      <div class="kv"><span class="k">Itemized deductions before 37%-bracket limitation</span><span class="v">${money(fd.fedItemizedRaw)}</span></div>
+      <div class="kv"><span class="k">"2/37" limitation (new IRC §68, top-bracket filers)</span><span class="v pos">-${money(fd.limitation37)}</span></div>
+      <div class="kv"><span class="k"><strong>Itemized total</strong></span><span class="v"><strong>${money(fd.fedItemized)}</strong></span></div>
+      <div class="note">Model uses whichever is higher unless you force one via the "Deduction method" input. Itemized won here: <strong>${fd.fedItemized > fd.fedStd ? 'yes' : 'no'}</strong> (itemized ${money(fd.fedItemized)} vs. standard ${money(fd.fedStd)}).</div>
+    </div></details>
+
+    <details><summary>Ordinary income tax — ${money(r.federal.ordinaryTaxableIncome)} at brackets, ${money(r.federal.ordinary.tax)}</summary>
+      <div class="details-body">${bracketTableHTML(r.federal.ordinary)}</div>
+    </details>
+
+    <details><summary>Long-term capital gains tax — ${money(r.federal.ltcgInIncome)} of gain, ${money(r.federal.ltcg.tax)}</summary>
+      <div class="details-body">
+        <div class="note">LTCG stacks on top of ordinary taxable income (${money(r.federal.ordinaryTaxableIncome)}) per the Qualified Dividends &amp; Capital Gain Tax Worksheet — it doesn't get its own 0% bracket from scratch.</div>
+        ${bracketTableHTML(r.federal.ltcg)}
+      </div>
+    </details>
+
+    <details><summary>Alternative Minimum Tax — owed ${money(r.federal.amt.owed)}</summary>
+      <div class="details-body">
+        <div class="kv"><span class="k">AGI less AMT-allowed charitable deduction</span><span class="v">${money(Math.max(0, r.income.AGI - fd.fedCharityDeductible))}</span></div>
+        <div class="kv"><span class="k">+ ISO exercise AMT preference (bargain element, all events)</span><span class="v">${money(r.federal.amt.isoPreference)}</span></div>
+        <div class="kv"><span class="k"><strong>AMTI</strong></span><span class="v"><strong>${money(r.federal.amt.AMTI)}</strong></span></div>
+        <div class="kv"><span class="k">AMT exemption (${fLabel}, base ${money(r.federal.amt.exemptionBase)}, phases out 50¢/$ above ${money(r.federal.amt.phaseoutStart)} AMTI)</span><span class="v">${money(r.federal.amt.exemption)}</span></div>
+        <div class="kv"><span class="k">AMT base (AMTI − exemption)</span><span class="v">${money(r.federal.amt.base)}</span></div>
+        <div class="kv" style="padding-left:14px;"><span class="k">— taxed at 26%/28% (ordinary portion, ${money(r.federal.amt.amtOrdinaryPortion)})</span><span class="v">${money(r.federal.amt.amtOrdinaryTax)}</span></div>
+        <div class="kv" style="padding-left:14px;"><span class="k">— taxed at LTCG rates (LTCG retains preferential rate under AMT, ${money(r.federal.amt.amtLtcgPortion)})</span><span class="v">${money(r.federal.amt.amtLtcgTax)}</span></div>
+        <div class="kv"><span class="k">Tentative Minimum Tax (TMT)</span><span class="v">${money(r.federal.amt.TMT)}</span></div>
+        <div class="kv"><span class="k">Regular tax (for comparison)</span><span class="v">${money(r.federal.regularTax)}</span></div>
+        <div class="kv"><span class="k"><strong>AMT owed = max(0, TMT − regular tax)</strong></span><span class="v ${r.federal.amt.owed>0?'pos':'zero'}"><strong>${money(r.federal.amt.owed)}</strong></span></div>
+        <div class="note">${r.federal.amt.owed>0 ? 'You are in AMT territory this year. AMT paid on the ISO timing preference generates a minimum tax credit (Form 8801) usable in future years when regular tax exceeds TMT.' : 'Not currently in AMT territory — TMT is below regular tax.'} This model doesn't isolate any single event's specific marginal AMT cost (the phase-out band makes attribution non-linear) — remove an event and compare totals, or check the Marginal Rate section.</div>
+      </div>
+    </details>
+
+    <details><summary>Net Investment Income Tax (NIIT) — ${money(r.federal.niit.tax)}</summary>
+      <div class="details-body">
+        <div class="kv"><span class="k">Net investment income (ST + LT capital gains, all events)</span><span class="v">${money(r.federal.niit.netInvestmentIncome)}</span></div>
+        <div class="kv"><span class="k">MAGI over threshold (${money(r.federal.niit.threshold)}, ${fLabel})</span><span class="v">${money(Math.max(0, r.income.AGI - r.federal.niit.threshold))}</span></div>
+        <div class="kv"><span class="k">NIIT base (lesser of the two)</span><span class="v">${money(r.federal.niit.base)}</span></div>
+        <div class="kv"><span class="k">NIIT (3.8% × base)</span><span class="v">${money(r.federal.niit.tax)}</span></div>
+        <div class="kv" style="padding-left:14px;"><span class="k">— attributable to short-term gains (proportional)</span><span class="v">${money(r.federal.niit.stcgShare)}</span></div>
+        <div class="kv" style="padding-left:14px;"><span class="k">— attributable to long-term gains (proportional)</span><span class="v">${money(r.federal.niit.ltcgShare)}</span></div>
+      </div>
+    </details>
+
+    <details><summary>Additional Medicare Tax — ${money(r.federal.addlMedicare.tax)}</summary>
+      <div class="details-body">
+        <div class="kv"><span class="k">Wages (W-2 + RSU + NSO exercise, all events) over threshold (${money(r.federal.addlMedicare.threshold)}, ${fLabel})</span><span class="v">${money(r.federal.addlMedicare.base)}</span></div>
+        <div class="kv"><span class="k">Tax (0.9% × base)</span><span class="v">${money(r.federal.addlMedicare.tax)}</span></div>
+        <div class="note">Capital gains are not wages and don't count toward this tax (they hit NIIT instead).</div>
+      </div>
+    </details>
+
+    <div class="kv" style="margin-top:8px;"><span class="k"><strong>Federal total</strong></span><span class="v"><strong>${money(r.federal.totalTax)}</strong></span></div>
+  `;
+
+  // ---------------- California body ----------------
+  const cd = r.ca.deduction;
+  $('ca-body').innerHTML = `
+    <div class="calc-steps">
+      <div class="step"><span class="k">Total income (wages + net ST gain + net LT gain, after loss netting)</span><span class="v">${money(r.income.totalIncome)}</span></div>
+      <div class="step sub"><span class="k">Wages — W-2 + RSU + NSO exercise</span><span class="v">${money(r.income.wages)}</span></div>
+      <div class="step sub"><span class="k">Capital gains (CA taxes ST &amp; LT the same, as ordinary income)</span><span class="v">${money(r.income.stcg+r.income.ltcg)}</span></div>
+      ${r.income.capitalLossDeduction>0 ? `<div class="step minus"><span class="k">− Capital loss deduction (max $3,000/yr)</span><span class="v">-${money(r.income.capitalLossDeduction)}</span></div>` : ``}
+      <div class="step subtotal"><span class="k">CA AGI (assumes = federal AGI)</span><span class="v">${money(r.income.AGI)}</span></div>
+      <div class="step minus"><span class="k">− ${cd.used==='itemized'?'Itemized':'Standard'} deduction</span><span class="v">-${money(cd.caDeduction)}</span></div>
+      <div class="step subtotal"><span class="k">CA taxable income</span><span class="v">${money(r.ca.taxableIncome)}</span></div>
+      <div class="step"><span class="k">CA tax on taxable income (ordinary brackets, no LTCG preference)</span><span class="v">${money(r.ca.ordinary.tax)}</span></div>
+      <div class="step plus"><span class="k">+ Mental Health Services Tax</span><span class="v">${money(r.ca.mhst.tax)}</span></div>
+      <div class="step plus"><span class="k">+ California AMT</span><span class="v">${money(r.ca.amt.owed)}</span></div>
+      <div class="step grand"><span class="k">Total California tax</span><span class="v">${money(r.ca.totalTax)}</span></div>
+    </div>
+    <div class="rate-line">
+      <span>Marginal rate on next dollar of ordinary income: <strong>${pct1(r.ca.ordinary.marginalRate)}</strong></span>
+      <span>Effective CA rate (of total income): <strong>${pct(r.ca.effectiveRate)}</strong></span>
+    </div>
+
+    <details><summary>Standard vs. itemized deduction detail</summary><div class="details-body">
+      <div class="kv"><span class="k">CA standard deduction</span><span class="v">${money(cd.caStdDeduction)}</span></div>
+      <div class="kv"><span class="k">Charitable deduction (cash ≤50% AGI, stock ≤30% AGI — CA never adopted the federal 60% cash limit)</span><span class="v">${money(cd.caCharityDeductible)}</span></div>
+      <div class="kv"><span class="k">+ Property tax (no CA cap)</span><span class="v">${money(inputs.propertyTax)}</span></div>
+      <div class="kv"><span class="k">Itemized before high-income limitation</span><span class="v">${money(cd.caItemizedRaw)}</span></div>
+      <div class="kv"><span class="k">High-income limitation (lesser of 6% of AGI over ${money(cd.caHiIncomeThreshold)}, or 80% of itemized)</span><span class="v pos">-${money(cd.caItemizedReduction)}</span></div>
+      <div class="kv"><span class="k"><strong>Itemized total</strong></span><span class="v"><strong>${money(cd.caItemized)}</strong></span></div>
+      <div class="note">CA never repealed its Pease-style high-income itemized limitation the way federal law did — this reduction applies on top of the AGI% charitable caps.</div>
+    </div></details>
+
+    <details><summary>CA ordinary tax (all income, incl. capital gains, taxed as ordinary — no CA preferential rate) — ${money(r.ca.ordinary.tax)}</summary>
+      <div class="details-body">${bracketTableHTML(r.ca.ordinary)}</div>
+    </details>
+
+    <details><summary>Mental Health Services Tax — ${money(r.ca.mhst.tax)}</summary>
+      <div class="details-body">
+        <div class="kv"><span class="k">CA taxable income over ${money(r.ca.mhst.threshold)} (fixed, not inflation-indexed)</span><span class="v">${money(Math.max(0, r.ca.taxableIncome - r.ca.mhst.threshold))}</span></div>
+        <div class="kv"><span class="k">Tax (1% × excess)</span><span class="v">${money(r.ca.mhst.tax)}</span></div>
+      </div>
+    </details>
+
+    <details><summary>California AMT — owed ${money(r.ca.amt.owed)}</summary>
+      <div class="details-body">
+        <div class="kv"><span class="k">AGI less AMT-allowed charitable deduction (no property/state tax allowed for AMT)</span><span class="v">${money(Math.max(0, r.income.AGI - cd.caCharityDeductible))}</span></div>
+        <div class="kv"><span class="k">+ ISO exercise AMT preference (all events)</span><span class="v">${money(r.federal.amt.isoPreference)}</span></div>
+        <div class="kv"><span class="k"><strong>CA AMTI</strong></span><span class="v"><strong>${money(r.ca.amt.AMTI)}</strong></span></div>
+        <div class="kv"><span class="k">CA AMT exemption (base ${money(r.ca.amt.exemptionBase)}, phases out 25¢/$ above ${money(r.ca.amt.phaseoutStart)} AMTI)</span><span class="v">${money(r.ca.amt.exemption)}</span></div>
+        <div class="kv"><span class="k">CA AMT base</span><span class="v">${money(r.ca.amt.base)}</span></div>
+        <div class="kv"><span class="k">CA Tentative Minimum Tax (flat 7%)</span><span class="v">${money(r.ca.amt.TMT)}</span></div>
+        <div class="kv"><span class="k">CA regular tax (for comparison, excl. MHST)</span><span class="v">${money(r.ca.ordinary.tax)}</span></div>
+        <div class="kv"><span class="k"><strong>CA AMT owed = max(0, TMT − regular tax)</strong></span><span class="v ${r.ca.amt.owed>0?'pos':'zero'}"><strong>${money(r.ca.amt.owed)}</strong></span></div>
+        <div class="note">CA doesn't give capital gains a preferential rate even under AMT — the whole CA AMT base is taxed at a flat 7%, unlike the federal split between 26/28% ordinary and LTCG rates.</div>
+      </div>
+    </details>
+
+    <div class="kv" style="margin-top:8px;"><span class="k"><strong>California total</strong></span><span class="v"><strong>${money(r.ca.totalTax)}</strong></span></div>
+  `;
+
+  // ---------------- Payroll info (Additional Medicare Tax lives ONLY in the Federal section above) ----------------
+  $('payroll-body').innerHTML = `
+    <div class="note">
+      <strong>Yes, you owe these — but you never write a check for them.</strong> Unlike the federal/CA numbers above, these are mandatory payroll withholdings your employer takes out of every paycheck automatically, the same way income-tax withholding is. They don't show up on your 1040 or CA 540 (with the one exception noted below), so they're kept in their own section rather than folded into "Total Tax Liability" at the top of the page. Nothing here is double-counted with the Federal or California sections.
+    </div>
+    <div class="kv"><span class="k">Employee-side Social Security tax (6.2% of wages, capped at $184,500 for 2026)</span><span class="v">${money(r.payrollInfo.ssTax)}</span></div>
+    <div class="kv"><span class="k">Employee-side Medicare tax (1.45% of wages, no cap)</span><span class="v">${money(r.payrollInfo.medicareBase)}</span></div>
+    <div class="kv"><span class="k">California SDI (1.3% of wages for 2026, no cap since 2024)</span><span class="v">${money(r.payrollInfo.caSdi)}</span></div>
+    <div class="note" style="margin-top:10px;">The one overlap: the <strong>Additional</strong> Medicare Tax (a separate 0.9% surtax on wages above $200K/$250K) genuinely is part of your federal income-tax liability — it's reconciled on Form 8959 and reported on Schedule 2 of your 1040. That's why it lives only in the Federal section above and isn't repeated here; showing it in both places would have been the double-count you're right to watch for. Your employer also separately withholds an extra 0.9% once your wages from them alone cross $200K, which is trued up (refunded or owed) through that same Form 8959 reconciliation — it isn't an additional amount on top of the Federal total shown above.</div>
+    <div class="note" style="margin-top:10px;">These figures only cover your employee-side withholding, calculated on wages (W-2 + RSU + NSO exercise income) — not ISO exercise spread, which is exempt from FICA/SDI by design, and not capital gains, which were never wages to begin with. Your employer separately pays a matching 6.2% Social Security + 1.45% Medicare on your wages, but that's their cost, not yours.</div>
+  `;
+
+  // ---------------- Marginal rate calculator ----------------
+  const bump = 10000;
+  function marginalBreakdown(field){
+    const bumped = Object.assign({}, inputs);
+    bumped[field] = (inputs[field]||0) + bump;
+    const rb = calculate(bumped);
+    return {
+      fed: (rb.federal.totalTax - r.federal.totalTax) / bump,
+      ca: (rb.ca.totalTax - r.ca.totalTax) / bump,
+      combined: (rb.totals.grandTotal - r.totals.grandTotal) / bump
+    };
+  }
+  const marginalRows = [
+    ['W-2 / ordinary wages', 'w2Income'],
+    ['Short-term capital gains', 'stcg'],
+    ['Long-term capital gains', 'ltcg'],
+    ['ISO exercise (AMT preference)', 'isoPreference'],
+    ['NSO exercise (ordinary income)', 'nsoOrdinaryIncome']
+  ];
+  // AMT exemption phase-out "hump" detection — this is where marginal rates spike hardest,
+  // because every extra $1 of AMTI also erodes the exemption (see federal.amt.exemption math above).
+  const fedHumpEnd = r.federal.amt.phaseoutStart + r.federal.amt.exemptionBase / 0.50;
+  const fedInHump = r.federal.amt.AMTI > r.federal.amt.phaseoutStart && r.federal.amt.AMTI < fedHumpEnd;
+  const caHumpEnd = r.ca.amt.phaseoutStart + r.ca.amt.exemptionBase / 0.25;
+  const caInHump = r.ca.amt.AMTI > r.ca.amt.phaseoutStart && r.ca.amt.AMTI < caHumpEnd;
+
+  let humpNote = '';
+  if (fedInHump || caInHump) {
+    const humpBody = (fedInHump ? `Your federal AMTI (${money(r.federal.amt.AMTI)}) sits between ${money(r.federal.amt.phaseoutStart)} and ${money(fedHumpEnd)}, where every extra dollar of AMT-relevant income also reduces your exemption by 50¢ — effectively taxing that dollar 1.5× the stated 28% AMT rate (≈42%) before CA is added. OBBBA doubled this phase-out rate (from 25% to 50%) starting this year, so this band is materially more expensive than in prior years. ` : ``)
+      + (caInHump ? `Your CA AMTI (${money(r.ca.amt.AMTI)}) is also inside CA's milder 25%-phase-out band (${money(r.ca.amt.phaseoutStart)}–${money(caHumpEnd)}). ` : ``)
+      + `This isn't a calculation error — it's a real, well-documented planning trap: rates are often worse in the middle of this band than either just below it or well past it. Reducing the triggering item (e.g. exercising fewer ISOs, or selling enough to clear the band entirely) is usually how this gets managed.`;
+    humpNote = `<details class="hump-details" id="humpDetails" ${humpNoteOpen ? 'open' : ''}>
+      <summary>⚠ You're currently inside an AMT exemption phase-out band — click for details</summary>
+      <div class="hump-body">${humpBody}</div>
+    </details>`;
+  }
+
+  // ---------------- Marginal rate line chart (click a row above to select) ----------------
+  let chartHTML = '';
+  if (marginalChartState.field) {
+    const points = computeMarginalSeries(marginalChartState.field, marginalChartState.max, inputs);
+    chartHTML = `<div class="chart-panel">
+      <div class="chart-controls">
+        <strong>Plotting: ${esc(marginalChartState.label)}</strong>
+        <label>Show up to +$ <input type="number" id="marginalChartMax" value="${marginalChartState.max}" step="10000" min="1000"></label>
+        <button type="button" class="chart-close-btn" data-action="close-chart" title="Close chart">✕</button>
+      </div>
+      <div class="chart-wrap" id="chartWrap">${buildMarginalChartSVG(points, marginalChartState.max)}</div>
+      <div class="chart-legend">
+        <span><i style="background:var(--accent)"></i> Federal rate (left axis)</span>
+        <span><i style="background:var(--accent-2)"></i> California rate (left axis)</span>
+        <span><i style="background:var(--warn)"></i> Combined rate (left axis)</span>
+        <span><i style="background:var(--bad);border-top:2px dashed var(--bad);height:0;"></i> Combined $ owed (right axis)</span>
+      </div>
+    </div>`;
+  }
+
+  $('marginal-body').innerHTML = `
+    <div class="note">Each row bumps <em>only</em> that income type by $${bump.toLocaleString()}, holding everything else fixed, and shows the resulting change in liability — separated into Federal, California, and Combined so you can see which jurisdiction is driving the number. Because AMT exemption phase-outs, NIIT/Add'l-Medicare thresholds, the SALT cap, and the "2/37" itemized limitation are all non-linear, these rates shift as your inputs change — re-check after any scenario edit rather than assuming they're constant. <strong>Click any row</strong> to plot how its rate changes as you add more of that income type.</div>
+    ${humpNote}
+    <table><thead><tr><th>Next $10,000 of…</th><th class="num">Federal</th><th class="num">California</th><th class="num">Combined rate</th><th class="num">Combined $</th></tr></thead><tbody>
+      ${marginalRows.map(([label, field]) => {
+        const m = marginalBreakdown(field);
+        const sel = marginalChartState.field === field ? ' class="selected"' : '';
+        return `<tr data-field="${field}" data-label="${esc(label)}"${sel}><td>${label}</td><td class="num">${pct1(m.fed)}</td><td class="num">${pct1(m.ca)}</td><td class="num"><strong>${pct1(m.combined)}</strong></td><td class="num">${money(m.combined*bump)}</td></tr>`;
+      }).join('')}
+    </tbody></table>
+    ${chartHTML}
+  `;
+
+  if (marginalChartState.field) initChartHover(computeMarginalSeries(marginalChartState.field, marginalChartState.max, inputs), marginalChartState.max);
+}
+
+// ============================================================================
+// Save / load scenario configuration (downloads/reads a JSON file — no
+// localStorage, so scenarios survive as real files you can keep, rename, and
+// compare across sessions or even share between browsers/computers).
+//
+// Default save/load location: where supported (File System Access API —
+// Chrome/Edge), saveConfig()/loadConfig() use a picker tagged with a fixed
+// `id`. The browser remembers the last folder used for that id, so the
+// first Save/Load after this repo's `scenarios/` folder was created will
+// prompt you to navigate there once — every Save/Load after that opens
+// straight into `scenarios/` with no navigating. Browsers without that API
+// (Firefox, Safari) fall back to a normal download into your Downloads
+// folder / the classic file-picker dialog; move files into `scenarios/`
+// manually there if you want them kept alongside the app.
+// ============================================================================
+const SCENARIO_PICKER_ID = 'tax-liability-model-scenarios';
+function defaultStateShape(){
+  return {
+    filingStatus: 'single', deductionMethod: 'auto', caInflationPct: 0,
+    w2Sources: [{ label: 'Base salary', amount: 0 }],
+    rsuVests: [{ label: '', amount: 0 }],
+    optionEvents: [{ type: 'ISO', label: '', shares: 0, strike: 0, fmv: 0 }],
+    capGainEvents: [{ type: 'LT', label: '', shares: 0, costBasis: 0, salePrice: 0 }],
+    cashCharity: 0, stockCharity: 0, propertyTax: 0
+  };
+}
+
+function safeFilenamePart(s){
+  return (s||'scenario').trim().replace(/[^a-z0-9\-_]+/gi, '_').slice(0,60) || 'scenario';
+}
+
+function showScenarioStatus(msg, isError){
+  const el = $('scenarioStatus');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--bad)' : 'var(--good)';
+  clearTimeout(showScenarioStatus._t);
+  showScenarioStatus._t = setTimeout(() => { el.textContent = ''; }, 6000);
+}
+
+async function saveConfig(){
+  const name = window.prompt('Name this scenario (used in the filename):', 'scenario') ;
+  if (name === null) return; // cancelled
+  const payload = {
+    tool: 'tax-liability-model-2026', version: 1,
+    savedAt: new Date().toISOString(),
+    name: name || 'scenario',
+    state: JSON.parse(JSON.stringify(state))
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const filename = safeFilenamePart(payload.name) + '.json';
+
+  // Preferred path: File System Access API. The `id` makes the browser
+  // remember the last folder used for *this* picker across saves, so once
+  // you've pointed it at scenarios/ once, it opens there by default.
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        id: SCENARIO_PICKER_ID,
+        suggestedName: filename,
+        types: [{ description: 'Scenario JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showScenarioStatus('Saved "' + payload.name + '"');
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the picker
+      // otherwise fall through to the classic download below
+    }
+  }
+
+  // Fallback for browsers without the File System Access API (Firefox,
+  // Safari): a normal download into the browser's Downloads folder. Move
+  // it into scenarios/ by hand if you want it kept alongside the app.
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showScenarioStatus('Saved "' + payload.name + '" to Downloads (move it into scenarios/ to keep it with the app)');
+}
+
+function syncTopLevelInputsFromState(){
+  $('filingStatus').value = state.filingStatus;
+  $('deductionMethod').value = state.deductionMethod;
+  $('caInflationPct').value = state.caInflationPct;
+  $('cashCharity').value = state.cashCharity;
+  $('stockCharity').value = state.stockCharity;
+  $('propertyTax').value = state.propertyTax;
+}
+
+function loadConfigFromFile(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const payload = JSON.parse(e.target.result);
+      const loaded = payload && payload.state ? payload.state : payload;
+      const d = defaultStateShape();
+      Object.assign(state, {
+        filingStatus: loaded.filingStatus === 'mfj' ? 'mfj' : 'single',
+        deductionMethod: ['auto','standard','itemized'].includes(loaded.deductionMethod) ? loaded.deductionMethod : 'auto',
+        caInflationPct: Number(loaded.caInflationPct)||0,
+        w2Sources: Array.isArray(loaded.w2Sources) && loaded.w2Sources.length ? loaded.w2Sources : d.w2Sources,
+        rsuVests: Array.isArray(loaded.rsuVests) && loaded.rsuVests.length ? loaded.rsuVests : d.rsuVests,
+        optionEvents: Array.isArray(loaded.optionEvents) && loaded.optionEvents.length ? loaded.optionEvents : d.optionEvents,
+        capGainEvents: Array.isArray(loaded.capGainEvents) && loaded.capGainEvents.length ? loaded.capGainEvents : d.capGainEvents,
+        cashCharity: Number(loaded.cashCharity)||0,
+        stockCharity: Number(loaded.stockCharity)||0,
+        propertyTax: Number(loaded.propertyTax)||0
+      });
+      syncTopLevelInputsFromState();
+      renderW2List(); renderRsuList(); renderOptionsList(); renderCapgainsList();
+      marginalChartState = { field: null, label: '', max: 100000 };
+      renderOutputs();
+      const label = (payload && payload.name) ? payload.name : file.name.replace(/\.json$/i,'');
+      const when = payload && payload.savedAt ? ' (saved ' + new Date(payload.savedAt).toLocaleString() + ')' : '';
+      showScenarioStatus('Loaded "' + label + '"' + when);
+    } catch (err) {
+      showScenarioStatus('Could not read that file — is it a scenario JSON saved from this tool?', true);
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function loadConfig(){
+  // Preferred path: same picker id as saveConfig(), so Open defaults into
+  // whatever folder Save last used (scenarios/, once you've pointed it
+  // there once).
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        id: SCENARIO_PICKER_ID,
+        types: [{ description: 'Scenario JSON', accept: { 'application/json': ['.json'] } }],
+        multiple: false
+      });
+      const file = await handle.getFile();
+      loadConfigFromFile(file);
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the picker
+      // otherwise fall through to the classic <input type=file> picker
+    }
+  }
+  $('loadFileInput').click();
+}
+
+// ============================================================================
+// Wire up top-level fields, lists, add-buttons, modal, save/load, and the
+// marginal-rate table's click-to-chart interaction
+// ============================================================================
+['filingStatus','deductionMethod','caInflationPct','cashCharity','stockCharity','propertyTax'].forEach(id => {
+  $(id).addEventListener('input', e => {
+    state[id] = e.target.type==='number' ? (parseFloat(e.target.value)||0) : e.target.value;
+    renderOutputs();
+  });
+});
+
+wireListContainer('w2List');
+wireListContainer('rsuList');
+wireListContainer('optionsList');
+wireListContainer('capgainsList');
+
+$('addW2Btn').addEventListener('click', () => { state.w2Sources.push({label:'',amount:0}); renderW2List(); renderOutputs(); });
+$('addRsuBtn').addEventListener('click', () => { state.rsuVests.push({label:'',amount:0}); renderRsuList(); renderOutputs(); });
+$('addOptionBtn').addEventListener('click', () => { state.optionEvents.push({type:'ISO',label:'',shares:0,strike:0,fmv:0}); renderOptionsList(); renderOutputs(); });
+$('addCapgainBtn').addEventListener('click', () => { state.capGainEvents.push({type:'LT',label:'',shares:0,costBasis:0,salePrice:0}); renderCapgainsList(); renderOutputs(); });
+
+$('infoBtn').addEventListener('click', () => $('sourcesModal').classList.add('open'));
+$('modalCloseBtn').addEventListener('click', () => $('sourcesModal').classList.remove('open'));
+$('sourcesModal').addEventListener('click', e => { if (e.target.id==='sourcesModal') $('sourcesModal').classList.remove('open'); });
+
+$('saveBtn').addEventListener('click', saveConfig);
+$('loadBtn').addEventListener('click', loadConfig);
+$('loadFileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (file) loadConfigFromFile(file);
+  e.target.value = ''; // allow reloading the same filename twice in a row
+});
+
+// marginal-body: clicking a row selects it for charting; the max-increase input and
+// close button live inside the dynamically-rendered chart panel, so use delegation.
+const marginalBodyEl = $('marginal-body');
+marginalBodyEl.addEventListener('click', e => {
+  const closeBtn = e.target.closest('[data-action="close-chart"]');
+  if (closeBtn) { marginalChartState.field = null; renderOutputs(); return; }
+  const row = e.target.closest('tr[data-field]');
+  if (row) { marginalChartState.field = row.dataset.field; marginalChartState.label = row.dataset.label; renderOutputs(); return; }
+});
+marginalBodyEl.addEventListener('input', e => {
+  if (e.target.id === 'marginalChartMax') {
+    marginalChartState.max = parseFloat(e.target.value)||0;
+    renderOutputs();
+  }
+});
+// the native <details> "toggle" event doesn't bubble, but a capturing listener on an
+// ancestor still receives it — use that to persist the AMT-hump note's open/closed state.
+marginalBodyEl.addEventListener('toggle', e => {
+  if (e.target.id === 'humpDetails') humpNoteOpen = e.target.open;
+}, true);
+
+renderW2List();
+renderRsuList();
+renderOptionsList();
+renderCapgainsList();
+renderOutputs();
+</script>
+</body>
+</html>
