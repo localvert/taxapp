@@ -1238,7 +1238,50 @@ function showScenarioStatus(msg, isError){
 }
 
 async function saveConfig(){
-  const name = window.prompt('Name this scenario (used in the filename):', 'scenario') ;
+  // Preferred path: File System Access API (Chrome/Edge/Arc). This has to
+  // run FIRST, right off the click, before any blocking dialog — a
+  // window.prompt() left open while the user types burns through the
+  // browser's "transient user activation" window, and showSaveFilePicker()
+  // silently fails once that expires (it just throws, so the old code
+  // fell through to the download fallback below without you noticing —
+  // that's why the filename you typed was never actually used). The
+  // `id` makes the browser remember the last folder used for *this*
+  // picker across saves, so once you've pointed it at scenarios/ once,
+  // it opens there by default. The filename you type into *this* native
+  // dialog is now the only source of truth for the name.
+  if (window.showSaveFilePicker) {
+    let handle = null;
+    try {
+      handle = await window.showSaveFilePicker({
+        id: SCENARIO_PICKER_ID,
+        suggestedName: 'scenario.json',
+        types: [{ description: 'Scenario JSON', accept: { 'application/json': ['.json'] } }]
+      });
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the picker
+      // otherwise fall through to the classic prompt+download path below
+    }
+    if (handle) {
+      const chosenName = handle.name.replace(/\.json$/i, '') || 'scenario';
+      const payload = {
+        tool: 'tax-liability-model-2026', version: 1,
+        savedAt: new Date().toISOString(),
+        name: chosenName,
+        state: JSON.parse(JSON.stringify(state))
+      };
+      const writable = await handle.createWritable();
+      await writable.write(JSON.stringify(payload, null, 2));
+      await writable.close();
+      showScenarioStatus('Saved "' + payload.name + '"');
+      return;
+    }
+  }
+
+  // Fallback for browsers without the File System Access API (Firefox,
+  // Safari): no native dialog to name the file up front, so ask first,
+  // then trigger a normal download into the browser's Downloads folder.
+  // Move it into scenarios/ by hand if you want it kept alongside the app.
+  const name = window.prompt('Name this scenario (used in the filename):', 'scenario');
   if (name === null) return; // cancelled
   const payload = {
     tool: 'tax-liability-model-2026', version: 1,
@@ -1248,31 +1291,6 @@ async function saveConfig(){
   };
   const json = JSON.stringify(payload, null, 2);
   const filename = safeFilenamePart(payload.name) + '.json';
-
-  // Preferred path: File System Access API. The `id` makes the browser
-  // remember the last folder used for *this* picker across saves, so once
-  // you've pointed it at scenarios/ once, it opens there by default.
-  if (window.showSaveFilePicker) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        id: SCENARIO_PICKER_ID,
-        suggestedName: filename,
-        types: [{ description: 'Scenario JSON', accept: { 'application/json': ['.json'] } }]
-      });
-      const writable = await handle.createWritable();
-      await writable.write(json);
-      await writable.close();
-      showScenarioStatus('Saved "' + payload.name + '"');
-      return;
-    } catch (err) {
-      if (err && err.name === 'AbortError') return; // user cancelled the picker
-      // otherwise fall through to the classic download below
-    }
-  }
-
-  // Fallback for browsers without the File System Access API (Firefox,
-  // Safari): a normal download into the browser's Downloads folder. Move
-  // it into scenarios/ by hand if you want it kept alongside the app.
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
